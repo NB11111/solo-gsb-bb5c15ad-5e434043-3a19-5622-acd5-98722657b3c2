@@ -6,6 +6,7 @@ import SegmentList from '../components/SegmentList.jsx'
 import AnnotationModal from '../components/AnnotationModal.jsx'
 import QuoteSearch from '../components/QuoteSearch.jsx'
 import SpeakingDurations from '../components/SpeakingDurations.jsx'
+import TurnTaking from '../components/TurnTaking.jsx'
 import {
   clone, downloadJson, emptyDocument, makeAnnotation, makeSegment, round3,
 } from '../utils.js'
@@ -25,6 +26,7 @@ export default function EditorPage() {
   const [qualityFocus, setQualityFocus] = useState(null) // {annId,range}
   const [quoteFocus, setQuoteFocus] = useState(null) // {range,speaker}
   const [speakingFocus, setSpeakingFocus] = useState(null) // {range,speakers}
+  const [turnFocus, setTurnFocus] = useState(null) // {range,kind,from,to}
   const importRef = useRef(null)
   const timelineRef = useRef(null)
 
@@ -71,6 +73,7 @@ export default function EditorPage() {
     setQualityFocus(null)
     setQuoteFocus(null)
     setSpeakingFocus(null)
+    setTurnFocus(null)
     if (searchParams.has('focusStart')) {
       searchParams.delete('ann')
       searchParams.delete('focusStart')
@@ -84,6 +87,7 @@ export default function EditorPage() {
   const locateQuote = (match) => {
     setQualityFocus(null)
     setSpeakingFocus(null)
+    setTurnFocus(null)
     setQuoteFocus({
       range: { start: match.start, end: match.end },
       speaker: match.speaker,
@@ -97,7 +101,19 @@ export default function EditorPage() {
   const locateSpeaking = ({ start, end, speakers: activeSpeakers }) => {
     setQualityFocus(null)
     setQuoteFocus(null)
+    setTurnFocus(null)
     setSpeakingFocus({ range: { start, end }, speakers: activeSpeakers })
+    setTimeout(() => timelineRef.current?.scrollIntoView(
+      { behavior: 'smooth', block: 'center' }), 0)
+  }
+
+  // Clicking a handover/interruption record in the turn-taking panel:
+  // emphasize the transition interval on the same timeline.
+  const locateTurn = ({ start, end, kind, from, to }) => {
+    setQualityFocus(null)
+    setQuoteFocus(null)
+    setSpeakingFocus(null)
+    setTurnFocus({ range: { start, end }, kind, from, to })
     setTimeout(() => timelineRef.current?.scrollIntoView(
       { behavior: 'smooth', block: 'center' }), 0)
   }
@@ -282,11 +298,13 @@ export default function EditorPage() {
           annotations={doc.annotations}
           selectedId={modal?.initial?.id}
           highlightIds={qualityFocus?.annId ? [qualityFocus.annId] : null}
-          focusRange={(qualityFocus || quoteFocus || speakingFocus)?.range || null}
+          focusRange={(qualityFocus || quoteFocus || speakingFocus
+            || turnFocus)?.range || null}
           focusVariant={
             quoteFocus ? 'quote'
               : speakingFocus ? 'speaking'
-                : 'quality'
+                : turnFocus ? 'turn'
+                  : 'quality'
           }
           onSelect={onTimelineSelect}
           onBackgroundClick={clearQualityFocus}
@@ -338,9 +356,26 @@ export default function EditorPage() {
             </button>
           </div>
         )}
+        {turnFocus && (
+          <div className="qc-focus-hint turn-focus-hint">
+            <strong>
+              {turnFocus.kind === 'interruption' ? '插话定位' : '接话定位'}
+            </strong>
+            <span>
+              {turnFocus.from} → {turnFocus.to} ·{' '}
+              {turnFocus.range.start.toFixed(2)}s –{' '}
+              {turnFocus.range.end.toFixed(2)}s
+            </span>
+            <button className="btn small" onClick={clearQualityFocus}>
+              取消定位
+            </button>
+          </div>
+        )}
       </div>
 
       <SpeakingDurations segments={doc.segments} onLocate={locateSpeaking} />
+
+      <TurnTaking segments={doc.segments} onLocate={locateTurn} />
 
       <QuoteSearch
         projectId={id}

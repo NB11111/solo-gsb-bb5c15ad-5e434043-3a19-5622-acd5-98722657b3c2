@@ -632,6 +632,79 @@ code {
   background: #f4effc; border-color: #d8caf0; color: #4d3380;
 }
 
+/* ---------- turn-taking relations ---------- */
+.turn-hint { margin-bottom: 10px; max-width: 920px; }
+.turn-controls {
+  display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.turn-threshold {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; white-space: nowrap;
+}
+.turn-threshold input { width: 100px; }
+
+.turn-summary { margin-bottom: 14px; }
+.turn-summary .stat-box .stat-num {
+  font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+.turn-pair-list { display: flex; flex-direction: column; gap: 10px; }
+.turn-pair {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 12px; background: #fcfdff;
+}
+.turn-pair-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.turn-pair-name { font-size: 14px; }
+.turn-arrow { color: var(--muted); font-weight: 400; }
+.turn-pair-counts {
+  display: inline-flex; gap: 6px; align-items: center;
+}
+.turn-empty { padding: 6px 2px; }
+
+.turn-event-list {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 8px;
+}
+.turn-event {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  width: 100%; text-align: left;
+  border: 1px solid var(--border); border-left: 4px solid #3a9aa8;
+  border-radius: 6px; background: #fcfeff;
+  padding: 5px 12px; cursor: pointer; font: inherit; color: inherit;
+}
+.turn-event.interruption { border-left-color: #d18a3a; background: #fffdf9; }
+.turn-event:hover { background: #f2f8fa; }
+.turn-event.interruption:hover { background: #fdf6ec; }
+.turn-event.active { box-shadow: 0 0 0 2px rgba(45, 140, 155, 0.35); }
+.turn-event.interruption.active {
+  box-shadow: 0 0 0 2px rgba(209, 138, 58, 0.35);
+}
+.turn-event-time {
+  font-variant-numeric: tabular-nums; font-size: 12px;
+  color: var(--muted); flex: none; min-width: 150px;
+}
+.turn-event-detail {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; flex: 1; min-width: 180px;
+}
+.turn-tag-handover {
+  background: #e6f5f7; border-color: #bfe0e4; color: #256c76;
+}
+.turn-tag-interruption {
+  background: #fdf0de; border-color: #f0d6b2; color: #8a5a1f;
+}
+
+.tl-focus.tl-focus-turn {
+  background: rgba(45, 140, 155, 0.12);
+  border-left: 2px solid #2d8c9b;
+  border-right: 2px solid #2d8c9b;
+}
+.qc-focus-hint.turn-focus-hint {
+  background: #ecf7f8; border-color: #bfe0e4; color: #215e66;
+}
+
 /* ---------- speaker normalization workbench ---------- */
 
 .sp-panel-hint { font-weight: 400; margin-left: 10px; }
