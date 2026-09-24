@@ -4,7 +4,7 @@
  * All math is done on integer milliseconds (segments carry fractional
  * seconds); results are converted back to seconds for display.
  *
- * Algorithm:
+ * Algorithm (shared with the turn-taking analysis via computeSpeechSlices):
  *   1. Drop segments with an empty/whitespace speaker, non-finite bounds,
  *      or zero/negative length (end <= start).
  *   2. Merge each speaker's own overlapping (or touching) intervals so a
@@ -40,17 +40,20 @@ function mergeRanges(ranges) {
 }
 
 /**
+ * Shared sweep: validate segments, merge each speaker's own intervals, then
+ * cut the timeline at every merged start/end instant and join adjacent
+ * elementary slices whose active-speaker sets are identical.
+ *
+ * Unlike analyzeSpeakingTime this keeps EVERY joined slice — solo (exactly
+ * one speaker), co-speaking (two or more) and silence (none) — so callers
+ * such as the turn-taking analysis can reason about the gaps between solos.
+ *
  * @param {Array<{start:number,end:number,speaker:string}>} segments
- * @returns {{
- *   speakers: Array<{name:string,soloMs:number,overlapMs:number,totalMs:number}>,
- *   overlapIntervals: Array<{startMs:number,endMs:number,durationMs:number,
- *                            speakers:string[],all:boolean}>,
- *   allIntervals: Array<{startMs:number,endMs:number,durationMs:number,
- *                        speakers:string[]}>,
- *   totalSoloMs:number, totalOverlapMs:number, totalAllMs:number,
- * }}
+ * @returns {{speakerNames: string[],
+ *            slices: Array<{startMs:number,endMs:number,speakers:string[]}>}}
+ *   slices are ordered by startMs and tile [firstBoundary, lastBoundary).
  */
-export function analyzeSpeakingTime(segments) {
+export function computeSpeechSlices(segments) {
   // speaker name -> raw [startMs, endMs) intervals (insertion order kept)
   const bySpeaker = new Map()
 
@@ -91,9 +94,10 @@ export function analyzeSpeakingTime(segments) {
 
   const times = [...eventMap.keys()].sort((a, b) => a - b)
   const active = new Set()
-  const soloMs = new Map(speakerNames.map((n) => [n, 0]))
-  const overlapMs = new Map(speakerNames.map((n) => [n, 0]))
-  const overlapSlices = [] // {startMs,endMs,speakers}
+  const slices = []
+
+  const sameSet = (a, b) =>
+    a.length === b.length && a.every((n, idx) => n === b[idx])
 
   for (let i = 0; i + 1 < times.length; i += 1) {
     const ev = eventMap.get(times[i])
@@ -104,29 +108,48 @@ export function analyzeSpeakingTime(segments) {
 
     const t0 = times[i]
     const t1 = times[i + 1]
-    if (t1 <= t0 || active.size === 0) continue
+    if (t1 <= t0) continue
 
     const names = [...active].sort((a, b) => order.get(a) - order.get(b))
-    if (active.size === 1) {
-      soloMs.set(names[0], soloMs.get(names[0]) + (t1 - t0))
+    // Join neighboring slices whose active-speaker sets are identical.
+    const last = slices[slices.length - 1]
+    if (last && last.endMs === t0 && sameSet(last.speakers, names)) {
+      last.endMs = t1
     } else {
-      // Each participant speaks through the whole slice: count it once per
-      // speaker, never as solo.
-      names.forEach((n) => overlapMs.set(n, overlapMs.get(n) + (t1 - t0)))
-      overlapSlices.push({ startMs: t0, endMs: t1, speakers: names })
+      slices.push({ startMs: t0, endMs: t1, speakers: names })
     }
   }
 
-  // Join neighboring slices whose active-speaker sets are identical.
-  const sameSet = (a, b) =>
-    a.speakers.length === b.speakers.length &&
-    a.speakers.every((n, idx) => n === b.speakers[idx])
-  const overlapIntervals = []
-  for (const slice of overlapSlices) {
-    const last = overlapIntervals[overlapIntervals.length - 1]
-    if (last && slice.startMs === last.endMs && sameSet(last, slice)) {
-      last.endMs = slice.endMs
-    } else {
+  return { speakerNames, slices }
+}
+
+/**
+ * @param {Array<{start:number,end:number,speaker:string}>} segments
+ * @returns {{
+ *   speakers: Array<{name:string,soloMs:number,overlapMs:number,totalMs:number}>,
+ *   overlapIntervals: Array<{startMs:number,endMs:number,durationMs:number,
+ *                            speakers:string[],all:boolean}>,
+ *   allIntervals: Array<{startMs:number,endMs:number,durationMs:number,
+ *                        speakers:string[]}>,
+ *   totalSoloMs:number, totalOverlapMs:number, totalAllMs:number,
+ * }}
+ */
+export function analyzeSpeakingTime(segments) {
+  const { speakerNames, slices } = computeSpeechSlices(segments)
+
+  const soloMs = new Map(speakerNames.map((n) => [n, 0]))
+  const overlapMs = new Map(speakerNames.map((n) => [n, 0]))
+  const overlapIntervals = [] // {startMs,endMs,speakers}
+
+  for (const slice of slices) {
+    const duration = slice.endMs - slice.startMs
+    if (slice.speakers.length === 1) {
+      const name = slice.speakers[0]
+      soloMs.set(name, soloMs.get(name) + duration)
+    } else if (slice.speakers.length >= 2) {
+      // Each participant speaks through the whole slice: count it once per
+      // speaker, never as solo.
+      slice.speakers.forEach((n) => overlapMs.set(n, overlapMs.get(n) + duration))
       overlapIntervals.push({
         startMs: slice.startMs,
         endMs: slice.endMs,
@@ -134,6 +157,7 @@ export function analyzeSpeakingTime(segments) {
       })
     }
   }
+
   // "All speakers" only makes sense with at least two known speakers.
   const total = speakerNames.length
   overlapIntervals.forEach((iv) => {

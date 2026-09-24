@@ -632,6 +632,56 @@ code {
   background: #f4effc; border-color: #d8caf0; color: #4d3380;
 }
 
+/* ---------- turn taking ---------- */
+.turn-hint { margin-bottom: 10px; max-width: 880px; }
+.turn-controls {
+  display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; margin-bottom: 12px;
+}
+.turn-controls label { font-size: 13px; font-weight: 600; }
+.turn-controls input { width: 90px; }
+.turn-summary { margin-bottom: 12px; }
+.turn-summary .stat-box .stat-num {
+  font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+.turn-pair-list { display: flex; flex-direction: column; gap: 10px; }
+.turn-pair {
+  border: 1px solid var(--border); border-left: 4px solid #c77f1f;
+  border-radius: 6px; background: #fffdf8; padding: 8px 12px;
+}
+.turn-pair-head {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.turn-pair-dir { font-weight: 700; }
+.turn-tag-normal {
+  background: #eef6ee; border-color: #cbe2cb; color: #2f6b33;
+}
+.turn-tag-interruption {
+  background: #fdf1e2; border-color: #ecd3ac; color: #8a5a10;
+}
+.turn-group { margin-top: 6px; }
+.turn-group-title { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.turn-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.turn-chip {
+  border: 1px solid var(--border); border-radius: 14px;
+  background: #fff; padding: 3px 10px; font-size: 12px;
+  cursor: pointer; font: inherit; color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.turn-chip:hover { background: #fdf3e3; }
+.turn-chip.active { box-shadow: 0 0 0 2px rgba(199, 127, 31, 0.35); }
+.turn-chip.kind-interruption { border-color: #e3c9a0; }
+
+.tl-focus.tl-focus-turn {
+  background: rgba(199, 127, 31, 0.12);
+  border-left: 2px solid #c77f1f;
+  border-right: 2px solid #c77f1f;
+}
+.qc-focus-hint.turn-focus-hint {
+  background: #fdf6ea; border-color: #ecd9b4; color: #7a5310;
+}
+
 /* ---------- speaker normalization workbench ---------- */
 
 .sp-panel-hint { font-weight: 400; margin-left: 10px; }
